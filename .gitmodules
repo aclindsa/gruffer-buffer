@@ -1,0 +1,3 @@
+[submodule "external/threads"]
+	path = external/threads
+	url = https://github.com/aclindsa/threads-scad.git
