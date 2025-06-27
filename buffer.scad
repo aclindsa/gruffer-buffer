@@ -1,6 +1,6 @@
 include <external/threads/threads.scad>
-$fn=180;
-//$fn=20;
+//$fn=180;
+$fn=60;
 
 case_lid_height = 3.5;
 case_lid_perimeter_height = 2.5;
@@ -68,28 +68,55 @@ module hexagon_pattern(box, diameter, wall_thickness) {
     }
 }
 
-case_top_corner_offset = max(min(case_outer_height/4, case_outer_width/4), case_outer_width - 110);
-case_bottom_corner_offset = 10;
+case_top_corner_vertical_offset = 15; //max(min(case_outer_height/4, case_outer_width/4), case_outer_width - 110);
+case_top_corner_horizontal_offset = 40; //max(min(case_outer_height/4, case_outer_width/4), case_outer_width - 110);
+//case_bottom_corner_offset = 50;
+//module case_shape_2d(inset, interior) {
+//    exterior_triangle_height_width = 25;
+//    diagonal_inset = inset/tan((180-45)/2); 
+//
+//    all_points = [
+//        [-case_outer_width/2 + inset, case_outer_height/2 - case_top_corner_offset - diagonal_inset],
+//        [-case_outer_width/2 + inset, -case_outer_height/2 + case_bottom_corner_offset + diagonal_inset],
+//        [-case_outer_width/2 + case_bottom_corner_offset + diagonal_inset, -case_outer_height/2 + inset],
+//        [case_outer_width/2 - case_bottom_corner_offset - diagonal_inset, -case_outer_height/2 + inset],
+//        [case_outer_width/2 - inset, -case_outer_height/2 + case_bottom_corner_offset + diagonal_inset],
+//        [case_outer_width/2 - inset, case_outer_height/2 - inset],
+//    ];
+//    interior_points = concat(all_points, [
+//        [-case_outer_width/2 + case_top_corner_offset + diagonal_inset, case_outer_height/2 - inset],
+//    ]);
+//    exterior_points = concat(all_points, [
+//        [-case_outer_width/2 + case_top_corner_offset + diagonal_inset - exterior_triangle_height_width, case_outer_height/2 - inset],
+//        [-case_outer_width/2 + case_top_corner_offset + diagonal_inset - exterior_triangle_height_width, case_outer_height/2 - exterior_triangle_height_width - inset],
+//    ]);
+//
+//    polygon(points = interior ? interior_points : exterior_points, convexity=10);
+//}
+
+case_corner_radius = pulley_outer_diameter/2;
+
+ptfe_support_horizontal_offset = 45;
 module case_shape_2d(inset, interior) {
-    exterior_triangle_height_width = 25;
-    diagonal_inset = inset/tan((180-45)/2); 
+    corner_radius = case_corner_radius - inset;
+    half_width = case_outer_width/2 - inset;
+    half_height = case_outer_height/2 - inset;
+    union() {
+        hull() {
+            translate([-half_width + case_top_corner_horizontal_offset + corner_radius, half_height - corner_radius, 0]) circle(r=corner_radius);
+            translate([-half_width + corner_radius, half_height - case_top_corner_vertical_offset - corner_radius, 0]) circle(r=corner_radius);
+            translate([-half_width + corner_radius, -half_height + corner_radius, 0]) circle(r=corner_radius);
+            translate([half_width - corner_radius, -half_height + corner_radius, 0]) circle(r=corner_radius);
+            translate([half_width - corner_radius, half_height - corner_radius, 0]) circle(r=corner_radius);
+        }
+        // extra 'square' piece to hook onto hanger on side of box
+        translate([half_width - corner_radius - 0.01, half_height - corner_radius - 0.01, 0]) square([corner_radius + 0.01, corner_radius + 0.01]);
 
-    all_points = [
-        [-case_outer_width/2 + inset, case_outer_height/2 - case_top_corner_offset - diagonal_inset],
-        [-case_outer_width/2 + inset, -case_outer_height/2 + inset],
-        [case_outer_width/2 - case_bottom_corner_offset - diagonal_inset, -case_outer_height/2 + inset],
-        [case_outer_width/2 - inset, -case_outer_height/2 + case_bottom_corner_offset + diagonal_inset],
-        [case_outer_width/2 - inset, case_outer_height/2 - inset],
-    ];
-    interior_points = concat(all_points, [
-        [-case_outer_width/2 + case_top_corner_offset + diagonal_inset, case_outer_height/2 - inset],
-    ]);
-    exterior_points = concat(all_points, [
-        [-case_outer_width/2 + case_top_corner_offset + diagonal_inset - exterior_triangle_height_width, case_outer_height/2 - inset],
-        [-case_outer_width/2 + case_top_corner_offset + diagonal_inset - exterior_triangle_height_width, case_outer_height/2 - exterior_triangle_height_width - inset],
-    ]);
-
-    polygon(points = interior ? interior_points : exterior_points, convexity=10);
+        if (interior != true) {
+            // extra 'square' piece to hold PTFE tube to spool
+            translate([-half_width + ptfe_support_horizontal_offset, half_height - ptfe_support_horizontal_offset, 0]) square([ptfe_support_horizontal_offset, ptfe_support_horizontal_offset]);
+        }
+    }
 }
 
 module case_shape(interior=true, inset=0, height) {
@@ -155,117 +182,178 @@ module ptfe_hole() {
 module ptfe_holes() {
     bottom_corner_offset = (case_outer_width - case_outer_base_width)/2 + case_outer_base_height;
     y_offset = max(ptfe_hole_large_radius, pulley_min_gap/2);
-    x_offset = y_offset - 1;
+    x_offset = -22;//y_offset - 1;
     z_offset = -2;
 
     // add holes for PTFE tubes
-    translate([-case_outer_width/2 + case_top_corner_offset - x_offset, case_outer_height/2 - case_wall_thickness - y_offset, case_total_outer_width/2 + z_offset]) rotate([0, -90, 0]) ptfe_hole();
+    translate([-case_outer_width/2 + ptfe_support_horizontal_offset - x_offset, case_outer_height/2 - case_wall_thickness - y_offset, case_total_outer_width/2 + z_offset]) rotate([0, -90, 0]) ptfe_hole();
 }
 
-case_hanger_top_height = 218;
-case_hanger_height = 10;
-case_hanger_body_height = 35;
-case_hanger_body_vertical_offset = 5;
-case_hanger_body_width = 15;
-case_hanger_body_depth = 10;
-case_hanger_body_angle = 5; // empirically determined to be ~5 degrees (tried measuring angle based on distances and it didn't work out because the sides of the box are curved slightly)
-case_hanger_threads_depth = 6;
-case_hanger_threads_diameter = 6;
-case_hanger_width = 6;
-case_hanger_skinny_width = 3.5;
-case_hanger_tolerance = 0.1;
-container_thickness = 2;
-module case_hanger() {
-    translate([case_outer_width/2 - case_hanger_skinny_width - case_wall_thickness,
-        -case_outer_height/2 + case_hanger_top_height - case_hanger_height,
-        case_wall_thickness + case_hanger_tolerance])
-    intersection() {
-        // This entire first section is building up the 'rotated' body of the
-        // hanger - the part which is rotated and aligned with the exterior of
-        // the box (including the holes and threads)
-        translate([case_hanger_body_depth + case_hanger_skinny_width + case_wall_thickness + case_hanger_tolerance*2,
-            case_hanger_height + case_hanger_body_vertical_offset, 0])
-        rotate([0, 0, -case_hanger_body_angle])
-        translate([-case_hanger_threads_depth, -case_hanger_height, 0])
-        difference() {
-            ScrewHole(outer_diam=case_hanger_threads_diameter, height=case_hanger_threads_depth+0.01, rotation=[0, 90, 0], position=[0, 0, case_hanger_width/2])
-                translate([
-                    -case_hanger_skinny_width - case_wall_thickness - case_hanger_tolerance*2 - case_hanger_body_depth + case_hanger_threads_depth,
-                    -case_hanger_body_height + case_hanger_height,
-                    -(case_hanger_body_width-case_hanger_width)/2])
-                cube([case_hanger_body_depth + case_hanger_skinny_width + case_wall_thickness + case_hanger_tolerance*2, case_hanger_body_height, case_hanger_body_width]);
-                translate([-25, 0, case_hanger_width/2]) rotate([0, 90, 0]) cylinder(d=2.5, h=100);
-                translate([0.01, 0, case_hanger_width/2]) rotate([0, 90, 0]) hull() {
-                    translate([0, 0, -(case_hanger_threads_diameter-2.5)/2]) cylinder(d=2.5, h=0.01);
-                    cylinder(d=case_hanger_threads_diameter, h=0.01);
-                }
-        }
-
-        // This second section builds up the non-rotated body of the hanger -
-        // the part which is matched to and aligns with the buffer cage body
-        union() {
-            half_difference = (case_hanger_width - case_hanger_skinny_width)/2;
-            hull() {
-                cube([case_hanger_skinny_width - half_difference, case_hanger_height, case_hanger_width]);
-                translate([case_hanger_skinny_width, 0, (case_hanger_width-case_hanger_skinny_width)/2]) cube([0.01, case_hanger_height, case_hanger_skinny_width]);
-            }
-            translate([0, 0, (case_hanger_width-case_hanger_skinny_width)/2]) cube([case_hanger_skinny_width + case_wall_thickness + case_hanger_tolerance*2 + 0.01, case_hanger_height, case_hanger_skinny_width]);
-            translate([0, -case_hanger_body_height + case_hanger_body_vertical_offset + case_hanger_height, -(case_hanger_body_width-case_hanger_width)/2]) translate([case_hanger_skinny_width + case_wall_thickness + case_hanger_tolerance*2, 0, 0]) cube([case_hanger_body_depth, case_hanger_body_height, case_hanger_body_width]);
-        }
-
-    }
-}
-
-case_hanger_nut_depth = 8;
-pc_connector_threads_diameter = 6;
-pc_connector_threads_depth = 4;
-module case_hanger_nut() {
-//    translate([case_outer_width/2 + case_hanger_body_depth + container_thickness,
+//case_hanger_top_height = 218;
+//case_hanger_height = 10;
+//case_hanger_body_height = 35;
+//case_hanger_body_vertical_offset = 5;
+//case_hanger_body_width = 15;
+//case_hanger_body_depth = 10;
+//case_hanger_body_angle = 5; // empirically determined to be ~5 degrees (tried measuring angle based on distances and it didn't work out because the sides of the box are curved slightly)
+//case_hanger_threads_depth = 6;
+//case_hanger_threads_diameter = 6;
+//case_hanger_width = 6;
+//case_hanger_skinny_width = 3.5;
+//case_hanger_tolerance = 0.1;
+//container_thickness = 2;
+//module case_hanger() {
+//    translate([case_outer_width/2 - case_hanger_skinny_width - case_wall_thickness,
 //        -case_outer_height/2 + case_hanger_top_height - case_hanger_height,
-//        case_wall_thickness + case_hanger_tolerance + case_hanger_width/2])
-//    rotate([0, -90, 0])
-//    translate([0, 0, -case_hanger_nut_depth])
-    difference() {
-        union() {
-            translate([0, 0, case_hanger_nut_depth-0.01])
-            intersection() {
-                    thread_depth = case_hanger_threads_depth + container_thickness*7/8;
-                    taper_depth = (case_hanger_threads_diameter-2.5)/2;
-                    ScrewThread(case_hanger_threads_diameter, thread_depth + taper_depth + 0.01,
-                      tip_height=ThreadPitch(case_hanger_threads_diameter), tip_min_fract=0.75);
-                    difference() {
-                        hull() {
-                            translate([0, 0, thread_depth + taper_depth]) cylinder(d=2.5, h=0.01);
-                            cylinder(d=case_hanger_threads_diameter, h=thread_depth);
-                        }
-                        translate([0, 0, thread_depth])
-                        hull() {
-                            cylinder(d=2.5, h=0.01);
-                            translate([0, 0, taper_depth]) cylinder(d=case_hanger_threads_diameter, h=thread_depth);
-                        }
-                    }
-            }
-            ScrewHole(outer_diam=pc_connector_threads_diameter, height=pc_connector_threads_depth)
-                cylinder(d=15, h=case_hanger_nut_depth, $fn=6);
+//        case_wall_thickness + case_hanger_tolerance])
+//    intersection() {
+//        // This entire first section is building up the 'rotated' body of the
+//        // hanger - the part which is rotated and aligned with the exterior of
+//        // the box (including the holes and threads)
+//        translate([case_hanger_body_depth + case_hanger_skinny_width + case_wall_thickness + case_hanger_tolerance*2,
+//            case_hanger_height + case_hanger_body_vertical_offset, 0])
+//        rotate([0, 0, -case_hanger_body_angle])
+//        translate([-case_hanger_threads_depth, -case_hanger_height, 0])
+//        difference() {
+//            ScrewHole(outer_diam=case_hanger_threads_diameter, height=case_hanger_threads_depth+0.01, rotation=[0, 90, 0], position=[0, 0, case_hanger_width/2])
+//                translate([
+//                    -case_hanger_skinny_width - case_wall_thickness - case_hanger_tolerance*2 - case_hanger_body_depth + case_hanger_threads_depth,
+//                    -case_hanger_body_height + case_hanger_height,
+//                    -(case_hanger_body_width-case_hanger_width)/2])
+//                cube([case_hanger_body_depth + case_hanger_skinny_width + case_wall_thickness + case_hanger_tolerance*2, case_hanger_body_height, case_hanger_body_width]);
+//                translate([-25, 0, case_hanger_width/2]) rotate([0, 90, 0]) cylinder(d=2.5, h=100);
+//                translate([0.01, 0, case_hanger_width/2]) rotate([0, 90, 0]) hull() {
+//                    translate([0, 0, -(case_hanger_threads_diameter-2.5)/2]) cylinder(d=2.5, h=0.01);
+//                    cylinder(d=case_hanger_threads_diameter, h=0.01);
+//                }
+//        }
+//
+//        // This second section builds up the non-rotated body of the hanger -
+//        // the part which is matched to and aligns with the buffer cage body
+//        union() {
+//            half_difference = (case_hanger_width - case_hanger_skinny_width)/2;
+//            hull() {
+//                cube([case_hanger_skinny_width - half_difference, case_hanger_height, case_hanger_width]);
+//                translate([case_hanger_skinny_width, 0, (case_hanger_width-case_hanger_skinny_width)/2]) cube([0.01, case_hanger_height, case_hanger_skinny_width]);
+//            }
+//            translate([0, 0, (case_hanger_width-case_hanger_skinny_width)/2]) cube([case_hanger_skinny_width + case_wall_thickness + case_hanger_tolerance*2 + 0.01, case_hanger_height, case_hanger_skinny_width]);
+//            translate([0, -case_hanger_body_height + case_hanger_body_vertical_offset + case_hanger_height, -(case_hanger_body_width-case_hanger_width)/2]) translate([case_hanger_skinny_width + case_wall_thickness + case_hanger_tolerance*2, 0, 0]) cube([case_hanger_body_depth, case_hanger_body_height, case_hanger_body_width]);
+//        }
+//
+//    }
+//}
+//
+//case_hanger_nut_depth = 8;
+//pc_connector_threads_diameter = 6;
+//pc_connector_threads_depth = 4;
+//module case_hanger_nut() {
+////    translate([case_outer_width/2 + case_hanger_body_depth + container_thickness,
+////        -case_outer_height/2 + case_hanger_top_height - case_hanger_height,
+////        case_wall_thickness + case_hanger_tolerance + case_hanger_width/2])
+////    rotate([0, -90, 0])
+////    translate([0, 0, -case_hanger_nut_depth])
+//    difference() {
+//        union() {
+//            translate([0, 0, case_hanger_nut_depth-0.01])
+//            intersection() {
+//                    thread_depth = case_hanger_threads_depth + container_thickness*7/8;
+//                    taper_depth = (case_hanger_threads_diameter-2.5)/2;
+//                    ScrewThread(case_hanger_threads_diameter, thread_depth + taper_depth + 0.01,
+//                      tip_height=ThreadPitch(case_hanger_threads_diameter), tip_min_fract=0.75);
+//                    difference() {
+//                        hull() {
+//                            translate([0, 0, thread_depth + taper_depth]) cylinder(d=2.5, h=0.01);
+//                            cylinder(d=case_hanger_threads_diameter, h=thread_depth);
+//                        }
+//                        translate([0, 0, thread_depth])
+//                        hull() {
+//                            cylinder(d=2.5, h=0.01);
+//                            translate([0, 0, taper_depth]) cylinder(d=case_hanger_threads_diameter, h=thread_depth);
+//                        }
+//                    }
+//            }
+//            ScrewHole(outer_diam=pc_connector_threads_diameter, height=pc_connector_threads_depth)
+//                cylinder(d=15, h=case_hanger_nut_depth, $fn=6);
+//        }
+//        translate([0, 0, -0.01]) cylinder(d=2.5, h=50);
+//        translate([0,  0, pc_connector_threads_depth-0.01]) hull() {
+//            translate([0, 0, (pc_connector_threads_diameter-2.5)/2]) cylinder(d=2.5, h=0.01);
+//            cylinder(d=pc_connector_threads_diameter, h=0.01);
+//        }
+//    }
+//}
+
+case_hanger_tolerance = 0.1; // amount the hanger is inset away frorm case (case dimensions stay same)
+
+case_hanger_cutout_skinny_width = case_total_outer_width - case_lid_height * 2;
+case_hanger_cutout_wide_width = case_total_outer_width - case_wall_thickness * 2;
+case_hanger_cutout_skinny_height = 20;
+case_hanger_cutout_transition_height = 5;
+case_hanger_cutout_wide_height = case_corner_radius;
+case_hanger_cutout_total_height = case_hanger_cutout_skinny_height + case_hanger_cutout_transition_height + case_hanger_cutout_wide_height;
+
+module case_lid_hanger_cutout(case=true) {
+    // if this is the case, make the cutout high enough so that it blows all
+    // the way through the top
+    height_addition = case ? case_total_outer_width : 0;
+
+    translate([case_outer_width/2 - case_wall_thickness*2 - 0.01,
+        case_outer_height/2 - case_wall_thickness - case_hanger_cutout_total_height,
+        case_wall_thickness])
+    union() {
+        translate([0, case_hanger_cutout_transition_height+case_hanger_cutout_wide_height, (case_hanger_cutout_wide_width-case_hanger_cutout_skinny_width)/2])
+            cube([case_wall_thickness * 3, case_hanger_cutout_skinny_height, case_hanger_cutout_skinny_width + height_addition]);
+        hull() {
+            translate([0, case_hanger_cutout_transition_height+case_hanger_cutout_wide_height, (case_hanger_cutout_wide_width-case_hanger_cutout_skinny_width)/2])
+                cube([case_wall_thickness * 3, 0.01, case_hanger_cutout_skinny_width + height_addition]);
+        translate([0, case_hanger_cutout_wide_height-0.01, 0])
+            cube([case_wall_thickness * 3, 0.01, case_hanger_cutout_wide_width + height_addition]);
         }
-        translate([0, 0, -0.01]) cylinder(d=2.5, h=50);
-        translate([0,  0, pc_connector_threads_depth-0.01]) hull() {
-            translate([0, 0, (pc_connector_threads_diameter-2.5)/2]) cylinder(d=2.5, h=0.01);
-            cylinder(d=pc_connector_threads_diameter, h=0.01);
-        }
+        cube([case_wall_thickness * 3, case_hanger_cutout_wide_height, case_hanger_cutout_wide_width + height_addition]);
     }
 }
 
-module case_hanger_cutout() {
-    translate([case_outer_width/2 - case_wall_thickness/2,
-        -case_outer_height/2 + case_hanger_top_height - case_hanger_height * 2.5,
-        case_wall_thickness + case_hanger_width/2 + case_hanger_tolerance])
-    rotate([-90, 0, 0])
-    union() {
-        translate([0, 0, case_hanger_height*1.5]) linear_extrude(h=case_hanger_height) square([10, case_hanger_skinny_width + case_hanger_tolerance*2], center=true);
-        translate([0, 0, case_hanger_height]) linear_extrude(h=case_hanger_height/2+0.01, scale=[1, (case_hanger_skinny_width + case_hanger_tolerance*2)/(case_hanger_width + case_hanger_tolerance*2)]) square([10, case_hanger_width+case_hanger_tolerance*2], center=true);
-        translate([0, 0, -case_hanger_tolerance*2]) linear_extrude(h=case_hanger_height + case_hanger_tolerance*2 + 0.01) square([10, case_hanger_width + case_hanger_tolerance*2], center=true);
+module case_hanger_addition() {
+    translate([case_outer_width/2 - case_wall_thickness*2,
+        case_outer_height/2 - case_wall_thickness - (case_hanger_cutout_skinny_height + case_hanger_cutout_transition_height) + 0.01,
+        case_wall_thickness])
+    cube([case_wall_thickness +0.01, case_hanger_cutout_skinny_height + case_hanger_cutout_transition_height, case_hanger_cutout_wide_width / 2]);
+}
+
+//case_hanger_height = 
+
+module case_hanger_inner_shape_cutout() {
+    cut_depth = (case_hanger_cutout_wide_width-case_hanger_cutout_skinny_width)/2 + case_hanger_tolerance;
+    translate([case_corner_radius - 2*case_wall_thickness + case_hanger_tolerance, case_corner_radius -(case_hanger_cutout_skinny_height + case_hanger_cutout_transition_height) + 0.01, case_hanger_width+0.01])
+    hull() {
+        translate([0, case_hanger_cutout_transition_height, -cut_depth])
+            cube([2*case_wall_thickness + 2*case_hanger_tolerance, case_hanger_cutout_skinny_height, cut_depth]);
+        cube([2*case_wall_thickness + 2*case_hanger_tolerance, 0.01, 0.01]);
+        translate([-cut_depth, 0, 0])
+            cube([0.01, case_hanger_cutout_skinny_height + case_hanger_cutout_transition_height, 0.01]);
     }
+}
+
+case_hanger_width = case_hanger_cutout_wide_width - 2*case_hanger_tolerance;
+module case_hanger_inner_shape() {
+    difference() {
+        translate([0.4*case_corner_radius, 0, 0])
+            cube([0.6*case_corner_radius, case_corner_radius, case_hanger_width]);
+        case_hanger_inner_shape_cutout();
+        translate([0, 0, case_hanger_width])
+            mirror([0, 0, 1])
+            case_hanger_inner_shape_cutout();
+        translate([0, 0, -0.01])
+        cylinder(r=case_corner_radius+0.01, h=case_hanger_width+0.02);
+    }
+}
+
+case_hanger_body_angle = 5; // empirically determined to be ~5 degrees (tried measuring angle based on distances and it didn't work out because the sides of the box are curved slightly)
+module case_hanger() {
+    case_hanger_inner_shape();
+    // TODO add 'back' (angled and 'straight' very flat cubes hulled together)
+    // TODO add 'sides' (hulls of a few spheres) 
+    // subtract out hole for filament and nut/threads
 }
 
 module lid(mirrored=false) {
@@ -276,6 +364,7 @@ module lid(mirrored=false) {
             lid_shape();
             lid_hexagons();
             position_pulley() pulley_tray();
+            case_lid_hanger_cutout(case=false);
         }
         pills();
         lid_pulley_spindle(mirrored=mirrored);
@@ -288,12 +377,15 @@ module case(mirrored=false) {
     union() {
         difference() {
             case_shape(interior=false, height=case_outer_depth);
-            case_interior();
+            difference() {
+                case_interior();
+                case_hanger_addition();
+            }
             lid_shape(extra_perimeter_inset=0.1);
             ptfe_holes();
             position_pulley() pulley_tray();
             pills();
-            case_hanger_cutout();
+            case_lid_hanger_cutout(case=true);
         }
         case_pulley_spindle(mirrored=mirrored);
     }
@@ -397,7 +489,7 @@ module pulley(inner_diameter=bearing_outer_diameter, outer_diameter=pulley_outer
 
 pulley_width = case_total_outer_width - 2*case_wall_thickness;
 module position_pulley() {
-    translate([case_outer_width/2 - (case_outer_width-case_top_corner_offset)/2,
+    translate([case_outer_width/2 - (case_outer_width-case_top_corner_horizontal_offset)/2,
         case_outer_height/2 - case_wall_thickness - pulley_min_gap - pulley_outer_diameter/2,
         case_wall_thickness + pulley_width/2])
     children();
@@ -627,18 +719,20 @@ module spool_holder_roller() {
     ]);
 }
 
-part = "case";
+part = "hanger";
 if (part == "case") {
     case(mirrored=false);
 } else if (part == "case_mirrored") {
     case(mirrored=true);
 } else if (part == "lid") {
-    mirror([0, 0, 1]) lid(mirrored=false);
+//    rotate([0, 180, 0])
+    lid(mirrored=false);
 } else if (part == "lid_mirrored") {
-    mirror([0, 0, 1]) lid(mirrored=true);
+//    rotate([0, 180, 0])
+    lid(mirrored=true);
 } else if (part == "hanger") {
-    rotate([0, 90, 0])
-    rotate([0, 0, case_hanger_body_angle])
+//    rotate([0, 90, 0])
+//    rotate([0, 0, case_hanger_body_angle])
     case_hanger();
 } else if (part == "hanger_nut") {
     case_hanger_nut();
@@ -651,5 +745,6 @@ if (part == "case") {
 } else if (part == "spool_holder_roller") {
     spool_holder_roller();
 } else {
-    assert(false, "Invalid part requested");
+    case_lid_hanger_cutout();
+//    assert(false, "Invalid part requested");
 }
