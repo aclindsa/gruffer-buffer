@@ -1,6 +1,6 @@
 include <external/threads/threads.scad>
-//$fn=180;
-$fn=60;
+$fn=180;
+//$fn=60;
 
 case_lid_height = 3.5;
 case_lid_perimeter_height = 2.5;
@@ -719,10 +719,10 @@ if (part == "case") {
 } else if (part == "case_mirrored") {
     case(mirrored=true);
 } else if (part == "lid") {
-//    rotate([0, 180, 0])
+    rotate([0, 180, 0])
     lid(mirrored=false);
 } else if (part == "lid_mirrored") {
-//    rotate([0, 180, 0])
+    rotate([0, 180, 0])
     lid(mirrored=true);
 } else if (part == "hanger") {
     rotate([0, 90, 0])
