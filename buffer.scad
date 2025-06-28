@@ -250,7 +250,7 @@ module case_hanger_addition() {
 
 module case_hanger_inner_shape_cutout() {
     cut_depth = (case_hanger_cutout_wide_width-case_hanger_cutout_skinny_width)/2 + case_hanger_tolerance;
-    translate([case_corner_radius - 2*case_wall_thickness + case_hanger_tolerance, case_corner_radius -(case_hanger_cutout_skinny_height + case_hanger_cutout_transition_height) + 0.01, case_hanger_inner_width+0.01])
+    translate([case_corner_radius - 2*case_wall_thickness + case_hanger_tolerance, case_corner_radius -(case_hanger_cutout_skinny_height + case_hanger_cutout_transition_height) + 0.01, case_hanger_inner_width])
     hull() {
         translate([0, case_hanger_cutout_transition_height, -cut_depth])
             cube([2*case_wall_thickness + 2*case_hanger_tolerance, case_hanger_cutout_skinny_height, cut_depth]);
@@ -271,6 +271,9 @@ module case_hanger_inner_shape() {
             case_hanger_inner_shape_cutout();
         translate([0, 0, -0.01])
         cylinder(r=case_corner_radius+0.01, h=case_hanger_inner_width+0.02);
+
+        translate([0.01, case_corner_radius - case_wall_thickness, case_hanger_inner_width - case_lid_height + case_wall_thickness - case_hanger_tolerance])
+        cube([case_corner_radius+0.02, case_wall_thickness+0.01, case_lid_height-case_wall_thickness + case_hanger_tolerance + 0.01]);
     }
 }
 
