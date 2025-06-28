@@ -68,35 +68,11 @@ module hexagon_pattern(box, diameter, wall_thickness) {
     }
 }
 
-case_top_corner_vertical_offset = 15; //max(min(case_outer_height/4, case_outer_width/4), case_outer_width - 110);
-case_top_corner_horizontal_offset = 40; //max(min(case_outer_height/4, case_outer_width/4), case_outer_width - 110);
-//case_bottom_corner_offset = 50;
-//module case_shape_2d(inset, interior) {
-//    exterior_triangle_height_width = 25;
-//    diagonal_inset = inset/tan((180-45)/2);
-//
-//    all_points = [
-//        [-case_outer_width/2 + inset, case_outer_height/2 - case_top_corner_offset - diagonal_inset],
-//        [-case_outer_width/2 + inset, -case_outer_height/2 + case_bottom_corner_offset + diagonal_inset],
-//        [-case_outer_width/2 + case_bottom_corner_offset + diagonal_inset, -case_outer_height/2 + inset],
-//        [case_outer_width/2 - case_bottom_corner_offset - diagonal_inset, -case_outer_height/2 + inset],
-//        [case_outer_width/2 - inset, -case_outer_height/2 + case_bottom_corner_offset + diagonal_inset],
-//        [case_outer_width/2 - inset, case_outer_height/2 - inset],
-//    ];
-//    interior_points = concat(all_points, [
-//        [-case_outer_width/2 + case_top_corner_offset + diagonal_inset, case_outer_height/2 - inset],
-//    ]);
-//    exterior_points = concat(all_points, [
-//        [-case_outer_width/2 + case_top_corner_offset + diagonal_inset - exterior_triangle_height_width, case_outer_height/2 - inset],
-//        [-case_outer_width/2 + case_top_corner_offset + diagonal_inset - exterior_triangle_height_width, case_outer_height/2 - exterior_triangle_height_width - inset],
-//    ]);
-//
-//    polygon(points = interior ? interior_points : exterior_points, convexity=10);
-//}
-
+case_top_corner_vertical_offset = 15;
+case_top_corner_horizontal_offset = 40;
 case_corner_radius = pulley_outer_diameter/2;
-
 ptfe_support_horizontal_offset = 45;
+
 module case_shape_2d(inset, interior) {
     corner_radius = case_corner_radius - inset;
     half_width = case_outer_width/2 - inset;
@@ -107,10 +83,8 @@ module case_shape_2d(inset, interior) {
             translate([-half_width + corner_radius, half_height - case_top_corner_vertical_offset - corner_radius, 0]) circle(r=corner_radius);
             translate([-half_width + corner_radius, -half_height + corner_radius, 0]) circle(r=corner_radius);
             translate([half_width - corner_radius, -half_height + corner_radius, 0]) circle(r=corner_radius);
-            translate([half_width - corner_radius, half_height - corner_radius, 0]) circle(r=corner_radius);
+            translate([half_width - 0.01, half_height - 0.01, 0]) square([0.01, 0.01]);
         }
-        // extra 'square' piece to hook onto hanger on side of box
-        translate([half_width - corner_radius - 0.01, half_height - corner_radius - 0.01, 0]) square([corner_radius + 0.01, corner_radius + 0.01]);
 
         if (interior != true) {
             // extra 'square' piece to hold PTFE tube to spool
@@ -546,32 +520,40 @@ module pill() {
 
 module pills() {
     pill_height = case_outer_depth - case_lid_perimeter_height + pill_radius;
-    diagonal_inset = case_wall_thickness*sin(45);
 
     // pills on top
-    top_width_remaining = case_outer_width - case_top_corner_offset;
+    top_width_remaining = case_outer_width - case_corner_radius - case_top_corner_horizontal_offset;
     translate([case_outer_width/2 - top_width_remaining/4, case_outer_height/2 - case_wall_thickness, pill_height]) pill();
     translate([case_outer_width/2 - top_width_remaining*3/4, case_outer_height/2 - case_wall_thickness, pill_height]) pill();
 
     // pills on bottom
-    translate([-case_outer_width/3, -case_outer_height/2 + case_wall_thickness, pill_height]) pill();
-    translate([0, -case_outer_height/2 + case_wall_thickness, pill_height]) pill();
-    translate([case_outer_width/3, -case_outer_height/2 + case_wall_thickness, pill_height]) pill();
-
-    // one pill on diagonal at top
-    translate([-case_outer_width/2 + case_top_corner_offset/2 + diagonal_inset, case_outer_height/2 - case_top_corner_offset/2 - diagonal_inset, pill_height]) rotate([0, 0, 45]) pill();
+    bottom_width_remaining = case_outer_width - 2*case_corner_radius;
+    translate([-case_outer_width/2 + case_corner_radius + bottom_width_remaining/10, -case_outer_height/2 + case_wall_thickness, pill_height]) pill();
+    translate([-case_outer_width/2 + case_corner_radius + bottom_width_remaining/2, -case_outer_height/2 + case_wall_thickness, pill_height]) pill();
+    translate([-case_outer_width/2 + case_corner_radius + bottom_width_remaining*9/10, -case_outer_height/2 + case_wall_thickness, pill_height]) pill();
 
     // pills on right side
-    translate([case_outer_width/2 - case_wall_thickness, case_outer_height*9/20, pill_height]) rotate([0, 0, 90]) pill();
-    translate([case_outer_width/2 - case_wall_thickness, case_outer_height/6, pill_height]) rotate([0, 0, 90]) pill();
-    translate([case_outer_width/2 - case_wall_thickness, -case_outer_height/8, pill_height]) rotate([0, 0, 90]) pill();
-    translate([case_outer_width/2 - case_wall_thickness, -case_outer_height*3/8, pill_height]) rotate([0, 0, 90]) pill();
+    right_height_remaining = case_outer_height - case_corner_radius - case_hanger_cutout_total_height;
+    translate([case_outer_width/2 - case_wall_thickness, -case_outer_height/2 + case_corner_radius + right_height_remaining/10, pill_height]) rotate([0, 0, 90]) pill();
+    translate([case_outer_width/2 - case_wall_thickness, -case_outer_height/2 + case_corner_radius + right_height_remaining/2, pill_height]) rotate([0, 0, 90]) pill();
+    translate([case_outer_width/2 - case_wall_thickness, -case_outer_height/2 + case_corner_radius + right_height_remaining*9/10, pill_height]) rotate([0, 0, 90]) pill();
 
     // pills on left side
-    left_width_remaining = case_outer_height - case_top_corner_offset;
-    translate([-case_outer_width/2 + case_wall_thickness, -case_outer_height/2 + left_width_remaining/6, pill_height]) rotate([0, 0, 90]) pill();
-    translate([-case_outer_width/2 + case_wall_thickness, -case_outer_height/2 + left_width_remaining/2, pill_height]) rotate([0, 0, 90]) pill();
-    translate([-case_outer_width/2 + case_wall_thickness, -case_outer_height/2 + left_width_remaining*5/6, pill_height]) rotate([0, 0, 90]) pill();
+    left_height_remaining = case_outer_height - case_corner_radius*2 - case_top_corner_vertical_offset;
+    translate([-case_outer_width/2 + case_wall_thickness, -case_outer_height/2 + case_corner_radius + left_height_remaining/10, pill_height]) rotate([0, 0, 90]) pill();
+    translate([-case_outer_width/2 + case_wall_thickness, -case_outer_height/2 + case_corner_radius + left_height_remaining/2, pill_height]) rotate([0, 0, 90]) pill();
+    translate([-case_outer_width/2 + case_wall_thickness, -case_outer_height/2 + case_corner_radius + left_height_remaining*9/10, pill_height]) rotate([0, 0, 90]) pill();
+
+    // one pill on diagonal at top
+    // TODO something still isn't quite right about this calculation - if the
+    // inputs change, this pill ends up in the wrong spot
+    angle = atan((case_top_corner_vertical_offset) / (case_top_corner_horizontal_offset));
+    half_distance = (case_top_corner_vertical_offset - case_wall_thickness) / sin(angle) / 2;
+    translate([-case_outer_width/2 + case_top_corner_horizontal_offset + case_corner_radius, case_outer_height/2 - case_corner_radius - case_wall_thickness, pill_height])
+        rotate([0, 0, angle])
+        translate([-half_distance, case_corner_radius, 0])
+        pill();
+
 }
 
 dovetail_height = 7;
